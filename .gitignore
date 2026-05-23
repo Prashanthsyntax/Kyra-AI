@@ -1,0 +1,10 @@
+.env
+token.json
+credentials.json
+*.pyc
+__pycache__/
+kyra-env/
+whatsapp/.wwebjs_auth/
+whatsapp/.wwebjs_cache/
+whatsapp/node_modules/
+kyra.db

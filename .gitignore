@@ -1,6 +1,7 @@
 .env
 token.json
 credentials.json
+gmail_token.json
 *.pyc
 __pycache__/
 kyra-env/

@@ -40,7 +40,6 @@ KyraAI/
 
 | Service | Where | Free tier |
 |---------|-------|-----------|
-
 | Groq | groq.com → API Keys | 14,400 req/day |
 | Twitter/X | developer.twitter.com | 500 posts/mo |
 | NewsAPI | newsapi.org | 100 req/day |

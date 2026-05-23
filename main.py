@@ -1,3 +1,4 @@
+# main.py
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -10,8 +11,8 @@ from connectors.twitter_connector import post_tweet
 from connectors.news_connector import get_top_news
 from connectors.telegram_connector import build_app
 from config import TELEGRAM_CHAT_ID
+from agents.kyra_persona import is_emotional, kyra_respond
 import uvicorn, asyncio, threading
-
 
 telegram_app = None
 
@@ -83,6 +84,30 @@ async def health():
 async def trigger_digest():
     await run_digest()
     return {"status": "Digest sent to Telegram"}
+
+
+@app.post("/message")
+async def handle_message(request: Request):
+    """
+    Receives a message from Telegram or any HTTP client.
+    Routes to emotional assistant or command handler.
+    """
+    body    = await request.json()
+    text    = body.get("message", "").strip()
+    user_id = body.get("user_id", "default")
+
+    if not text:
+        return JSONResponse({"reply": "Empty message received."}, status_code=400)
+
+    # Emotional messages (no "Kyra" prefix) → persona handler
+    if is_emotional(text) and not text.lower().startswith("kyra"):
+        reply = kyra_respond(user_id, text)
+        await send_whatsapp_message(reply)
+        return {"reply": reply}
+
+    # Everything else → command handler
+    await handle_command(text)
+    return {"reply": "Command processed."}
 
 
 if __name__ == "__main__":

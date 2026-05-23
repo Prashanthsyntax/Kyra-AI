@@ -2,33 +2,45 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from db import init_db, get_session, Message
+from db import init_db
 from scheduler import start_scheduler, stop_scheduler
 from agents.intent_parser import parse_intent
 from agents.summariser import send_whatsapp_message, run_digest
 from agents.calendar_agent import create_event, get_upcoming_events
+from agents.kyra_persona import is_emotional, kyra_respond
 from connectors.twitter_connector import post_tweet
 from connectors.news_connector import get_top_news
 from connectors.telegram_connector import build_app
-from config import TELEGRAM_CHAT_ID
-from agents.kyra_persona import is_emotional, kyra_respond
-import uvicorn, asyncio, threading
+import uvicorn, threading
 
 telegram_app = None
 
 
-async def handle_command(command: str):
-    """Parse and execute a user command."""
-    print(f"[Kyra] Command: {command}")
+async def handle_command(command: str, user_id: str = "default"):
+    """
+    Central router for all incoming messages.
+    - No 'Kyra' prefix  → Kyra persona (emotional / casual)
+    - 'Kyra' prefix     → intent parser → task execution
+    """
+    print(f"[Kyra] Incoming: {command}")
+    stripped = command.strip().lower()
+
+    # ── Persona route (hi, hello, feelings, casual chat) ──────
+    if not stripped.startswith("kyra"):
+        reply = kyra_respond(user_id, command)
+        await send_whatsapp_message(reply)
+        return
+
+    # ── Command route ──────────────────────────────────────────
     intent = parse_intent(command)
     action = intent.get("action")
 
     if action == "set_calendar":
         result = create_event(
-            title=intent.get("title", "Event"),
-            start=intent.get("start"),
-            end=intent.get("end"),
-            description=intent.get("description", ""),
+            title       = intent.get("title", "Event"),
+            start       = intent.get("start"),
+            end         = intent.get("end"),
+            description = intent.get("description", ""),
         )
         await send_whatsapp_message(result["reply"])
 
@@ -43,14 +55,32 @@ async def handle_command(command: str):
             await send_whatsapp_message("📰 Top news:\n" + get_top_news())
         elif stype == "calendar":
             await send_whatsapp_message("📅 Upcoming:\n" + get_upcoming_events())
+        elif stype == "email":
+            from agents.summariser import _format_emails
+            await send_whatsapp_message("✉ Emails:\n" + _format_emails())
         else:
             await run_digest()
 
-    elif action in ("chat", "unknown"):
-        await send_whatsapp_message(intent.get("reply", ""))
+    elif action == "get_fact":
+        from agents.facts_agent import generate_fact
+        category = intent.get("category", "Science")
+        fact = generate_fact(category)
+        msg = f"🧠 *{fact['category']}*\n{fact['fact']}\n\n↳ {fact.get('why', '')}"
+        await send_whatsapp_message(msg)
+
+    elif action == "chat":
+        # Intent parser said chat — let Kyra persona handle it
+        reply = kyra_respond(user_id, command)
+        await send_whatsapp_message(reply)
 
     else:
-        await send_whatsapp_message("Try: 'Kyra set my calendar 10 AM to 12 PM study'")
+        await send_whatsapp_message(
+            "Try:\n"
+            "• Kyra what's the news\n"
+            "• Kyra set my calendar 10 AM to 11 AM meeting\n"
+            "• Kyra post a tweet: hello world\n"
+            "• Kyra give me a fact about space"
+        )
 
 
 @asynccontextmanager
@@ -59,7 +89,6 @@ async def lifespan(app: FastAPI):
     init_db()
     start_scheduler()
 
-    # Start Telegram bot in background thread
     telegram_app = build_app(handle_command)
     t = threading.Thread(
         target=lambda: telegram_app.run_polling(close_loop=False),
@@ -67,7 +96,7 @@ async def lifespan(app: FastAPI):
     )
     t.start()
 
-    print("[Kyra] 🤖 Kyra is online on Telegram!")
+    print("[Kyra] 🤖 Kyra is online!")
     yield
     stop_scheduler()
 
@@ -83,31 +112,20 @@ async def health():
 @app.get("/trigger-digest")
 async def trigger_digest():
     await run_digest()
-    return {"status": "Digest sent to Telegram"}
+    return {"status": "Digest sent"}
 
 
 @app.post("/message")
 async def handle_message(request: Request):
-    """
-    Receives a message from Telegram or any HTTP client.
-    Routes to emotional assistant or command handler.
-    """
     body    = await request.json()
     text    = body.get("message", "").strip()
     user_id = body.get("user_id", "default")
 
     if not text:
-        return JSONResponse({"reply": "Empty message received."}, status_code=400)
+        return JSONResponse({"reply": "Empty message."}, status_code=400)
 
-    # Emotional messages (no "Kyra" prefix) → persona handler
-    if is_emotional(text) and not text.lower().startswith("kyra"):
-        reply = kyra_respond(user_id, text)
-        await send_whatsapp_message(reply)
-        return {"reply": reply}
-
-    # Everything else → command handler
-    await handle_command(text)
-    return {"reply": "Command processed."}
+    await handle_command(text, user_id)
+    return {"reply": "OK"}
 
 
 if __name__ == "__main__":

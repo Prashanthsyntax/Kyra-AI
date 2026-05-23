@@ -2,9 +2,9 @@
 
 Kyra is your personal AI agent. She:
 
-- Summarises your WhatsApp chats, Twitter timeline, and top news every 2 hours
+- Summarises your WhatsApp chats and top news every 2 hours
 - Responds to your commands: set calendar events, post tweets, get summaries
-- Runs 24/7 on Oracle Cloud free tier with Groq as the LLM brain
+- Runs 24/7 with Groq as the LLM brain
 
 ---
 
@@ -70,27 +70,9 @@ cp .env.example .env
 4. Download JSON → save as `credentials.json` in KyraAI folder
 5. First run will open a browser to authorise — do this once
 
-### 5. WhatsApp bot setup
-
-```bash
-cd whatsapp
-npm install
-node bot.js
-# A QR code appears in terminal
-# Open WhatsApp on your phone → Linked Devices → Link a Device → scan QR
-# After scan, session is saved — no QR needed again
-```
-
 ### 6. Run Kyra (two terminals)
 
-**Terminal 1 — WhatsApp bot:**
-
-```bash
-cd whatsapp
-node bot.js
-```
-
-**Terminal 2 — Python backend:**
+**Terminal 1 — Python backend:**
 
 ```bash
 source kyra-env/bin/activate
@@ -99,7 +81,7 @@ python main.py
 
 ### 7. Test it
 
-Open your WhatsApp and send yourself:
+Open your Telegram and send yourself:
 
 ```bash
 Kyra what's the news today
@@ -147,15 +129,9 @@ Hi! Here's your Kyra digest 🤖
 ## Deploy to Oracle Cloud (later)
 
 ```bash
-# On Oracle VM
 git clone your-repo
 cd KyraAI
 pip install -r requirements.txt
-cd whatsapp && npm install && cd ..
-npm install -g pm2
-pm2 start whatsapp/bot.js --name kyra-whatsapp
-pm2 start "python main.py" --name kyra-api
-pm2 save && pm2 startup
 ```
 
 ![alt text](image.png)

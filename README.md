@@ -1,6 +1,7 @@
 # Kyra AI — Personal Agent
 
 Kyra is your personal AI agent. She:
+
 - Summarises your WhatsApp chats, Twitter timeline, and top news every 2 hours
 - Responds to your commands: set calendar events, post tweets, get summaries
 - Runs 24/7 on Oracle Cloud free tier with Groq as the LLM brain
@@ -9,7 +10,7 @@ Kyra is your personal AI agent. She:
 
 ## Folder structure
 
-```
+```bash
 KyraAI/
 ├── .env                     ← your API keys (copy from .env.example)
 ├── .env.example
@@ -39,6 +40,7 @@ KyraAI/
 
 | Service | Where | Free tier |
 |---------|-------|-----------|
+
 | Groq | groq.com → API Keys | 14,400 req/day |
 | Twitter/X | developer.twitter.com | 500 posts/mo |
 | NewsAPI | newsapi.org | 100 req/day |
@@ -82,12 +84,14 @@ node bot.js
 ### 6. Run Kyra (two terminals)
 
 **Terminal 1 — WhatsApp bot:**
+
 ```bash
 cd whatsapp
 node bot.js
 ```
 
 **Terminal 2 — Python backend:**
+
 ```bash
 source kyra-env/bin/activate
 python main.py
@@ -96,7 +100,8 @@ python main.py
 ### 7. Test it
 
 Open your WhatsApp and send yourself:
-```
+
+```bash
 Kyra what's the news today
 Kyra set my calendar for 10 AM to 12 PM, I want to study
 Kyra post a tweet: Excited to build my own AI agent!
@@ -104,6 +109,7 @@ Kyra give me a summary
 ```
 
 Or test the digest immediately:
+
 ```bash
 curl http://localhost:8000/trigger-digest
 ```
@@ -121,7 +127,7 @@ Kyra replies back to your WhatsApp
 
 ## Digest format (every 2 hours)
 
-```
+```bash
 Hi! Here's your Kyra digest 🤖
 
 📱 WhatsApp
